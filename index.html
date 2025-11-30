@@ -58,7 +58,6 @@
             background: linear-gradient(to right, #00695c, #003d33);
         }
 
-        /* Table */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -149,13 +148,12 @@
     </table>
 
     <script>
-        // 🔗 رابط الويب أب بتاعك (نفس القديم العمل معاك)
+        // رابط الويب أب بتاعك
         const API_URL = "https://script.google.com/macros/s/AKfycbwVP6FY0ESSquxbjY--Y6b4VLHIe-DHfZp_uEQNA4ilYByF3Bj5tBIraV052TGzyXoA/exec";
 
         let students = [];
         let editId = null;
 
-        // 🔹 عرض رسالة
         function showMessage(msg, type = "success") {
             const el = document.getElementById("message");
             el.textContent = msg;
@@ -163,25 +161,23 @@
             setTimeout(() => (el.textContent = ""), 2500);
         }
 
-        // 🔹 تحميل الطلاب من Google Sheets
+        // تحميل الطلاب (GET)
         async function loadStudents() {
             try {
-                const res = await fetch(API_URL);
-                const data = await res.json();
-                students = data || [];
+                const res = await fetch(API_URL); // GET عادي
+                students = await res.json();
                 renderTable();
             } catch (err) {
                 console.error(err);
-                showMessage("خطأ في الاتصال بالقاعدة", "error");
+                showMessage("خطأ في الاتصال بالباك إند", "error");
             }
         }
 
-        // 🔹 رسم الجدول
         function renderTable() {
             const tbody = document.getElementById("tableBody");
             tbody.innerHTML = "";
 
-            if (students.length === 0) {
+            if (!students || students.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="4">لا توجد بيانات</td></tr>`;
                 return;
             }
@@ -193,49 +189,57 @@
                         <td>${s.full_name}</td>
                         <td>${s.stage}</td>
                         <td>
-                            <button class="btn-small edit-btn" onclick="startEdit('${s.id}', '${s.full_name}', '${s.stage}')">تعديل</button>
-                            <button class="btn-small delete-btn" onclick="deleteStudent('${s.id}')">حذف</button>
+                            <button class="btn-small edit-btn"
+                                onclick="startEdit('${s.id}', '${s.full_name}', '${s.stage}')">
+                                تعديل
+                            </button>
+                            <button class="btn-small delete-btn"
+                                onclick="deleteStudent('${s.id}')">
+                                حذف
+                            </button>
                         </td>
                     </tr>
                 `;
             });
         }
 
-        // 🔹 إضافة أو تعديل طالب
+        // إضافة أو تعديل طالب (POST بـ no-cors)
         async function saveStudent() {
             const name = document.getElementById("full_name").value.trim();
             const stage = document.getElementById("stage").value;
 
             if (!name || !stage) {
-                showMessage("املأ البيانات كاملة", "error");
+                showMessage("املأ كل البيانات", "error");
                 return;
             }
 
-            const data = editId
+            const payload = editId
                 ? { action: "edit", id: editId, full_name: name, stage }
                 : { action: "add", full_name: name, stage };
 
             try {
                 await fetch(API_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data),
+                    mode: "no-cors",        // المهم هنا
+                    body: JSON.stringify(payload)
                 });
 
-                showMessage(editId ? "تم التعديل 👍" : "تمت الإضافة ✔");
+                showMessage(editId ? "تم التعديل 👍" : "تمت الإضافة ✔", "success");
 
                 editId = null;
                 document.getElementById("full_name").value = "";
                 document.getElementById("stage").value = "";
 
-                setTimeout(loadStudents, 300);
+                // نعيد تحميل البيانات بعد شوية
+                setTimeout(loadStudents, 600);
+
             } catch (err) {
                 console.error(err);
-                showMessage("خطأ أثناء الحفظ!", "error");
+                showMessage("خطأ أثناء الحفظ", "error");
             }
         }
 
-        // 🔹 تعبئة الفورم للتعديل
+        // تجهيز الفورم للتعديل
         function startEdit(id, name, stage) {
             editId = id;
             document.getElementById("full_name").value = name;
@@ -243,22 +247,23 @@
             showMessage("أنت الآن تعدل بيانات الطالب", "success");
         }
 
-        // 🔹 حذف طالب
+        // حذف طالب (POST بـ no-cors)
         async function deleteStudent(id) {
             if (!confirm("هل تريد حذف هذا الطالب؟")) return;
 
             try {
                 await fetch(API_URL, {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "delete", id }),
+                    mode: "no-cors",       // برضو هنا
+                    body: JSON.stringify({ action: "delete", id })
                 });
 
                 showMessage("تم الحذف ❌", "success");
-                setTimeout(loadStudents, 300);
+                setTimeout(loadStudents, 600);
+
             } catch (err) {
                 console.error(err);
-                showMessage("خطأ أثناء الحذف!", "error");
+                showMessage("خطأ أثناء الحذف", "error");
             }
         }
 
